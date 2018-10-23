@@ -73,8 +73,15 @@ module.exports = (port, host) => Promise.resolve()${this.compileBackendModuleImp
 const { BackendApplicationConfigProvider } = require('@theia/core/lib/node/backend-application-config-provider');
 BackendApplicationConfigProvider.set(${this.prettyStringify(this.pck.props.backend.config)});
 
+const electronVersion = undefined;
+const argv = process.argv.splice(2);
+const index = argv.indexOf(arg => arg.startsWith('electron-version='));
+if (index !== -1) {
+    electronVersion = argv[index].split('electron-version=').pop();
+}
+
 const serverPath = require('path').resolve(__dirname, 'server');
-const address = require('@theia/core/lib/node/cluster/main').default(serverPath);
+const address = require('@theia/core/lib/node/cluster/main').default(serverPath, electronVersion);
 address.then(function (address) {
     if (process && process.send) {
         process.send(address.port.toString());

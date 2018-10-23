@@ -137,6 +137,7 @@ function createNewWindow(theUrl) {
     return newWindow;
 }
 
+const mainPath = join(__dirname, '..', 'backend', 'main');
 if (isMaster) {
     app.on('window-all-closed', () => {
         if (process.platform !== 'darwin') {
@@ -153,7 +154,6 @@ if (isMaster) {
         const loadMainWindow = (port) => {
             mainWindow.loadURL('file://' + join(__dirname, '../../lib/index.html') + '?port=' + port);
         };
-        const mainPath = join(__dirname, '..', 'backend', 'main');
         // We need to distinguish between bundled application and development mode when starting the clusters.
         // See: https://github.com/electron/electron/issues/6337#issuecomment-230183287
         if (devMode) {
@@ -164,7 +164,12 @@ if (isMaster) {
                 app.exit(1);
             });
         } else {
-            const cp = fork(mainPath);
+            const argv = [];
+            const { versions } = process;
+            if (versions && versions.electron) {
+                argv.push('electron-version=' + versions.electron);
+            }
+            const cp = fork(mainPath, argv);
             cp.on('message', (message) => {
                 loadMainWindow(message);
             });
@@ -180,7 +185,7 @@ if (isMaster) {
         }
     });
 } else {
-    require('../backend/main');
+    require(mainPath);
 }
 `;
     }

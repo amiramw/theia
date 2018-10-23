@@ -53,7 +53,11 @@ export interface Address {
     address: string;
 }
 
-export async function start(serverPath: string): Promise<Address> {
+export async function start(serverPath: string, electronVersion?: string): Promise<Address> {
+    const { versions } = process;
+    if (electronVersion && !!versions.electron) {
+        versions.electron = electronVersion;
+    }
     if (isMaster) {
         const master = new MasterProcess(startupTimeout);
         master.onexit(process.exit);

@@ -112,15 +112,21 @@ export class PluginDeployerImpl implements PluginDeployer {
         const visited = new Set<string>();
         const pluginsToDeploy = new Map<string, PluginDeployerEntry>();
 
-        const queue = [...pluginEntries];
+        let queue = [...pluginEntries];
         while (queue.length) {
-            const chunk = [];
+            const dependenciesChunk = [];
+            const workload = [];
             while (queue.length) {
                 const current = queue.shift()!;
                 if (visited.has(current)) {
                     continue;
+                } else {
+                    workload.push(current);
                 }
                 visited.add(current);
+            }
+            queue = [];
+            await Promise.all(workload.map(async current => {
                 try {
                     const pluginDeployerEntries = await this.resolvePlugin(current);
                     await this.applyFileHandlers(pluginDeployerEntries);
@@ -130,15 +136,15 @@ export class PluginDeployerImpl implements PluginDeployer {
                         if (dependencies && !pluginsToDeploy.has(dependencies.metadata.model.id)) {
                             pluginsToDeploy.set(dependencies.metadata.model.id, deployerEntry);
                             if (dependencies.mapping) {
-                                chunk.push(dependencies.mapping);
+                                dependenciesChunk.push(dependencies.mapping);
                             }
                         }
                     }
                 } catch (e) {
                     console.error(`Failed to resolve plugins from '${current}'`, e);
                 }
-            }
-            for (const dependencies of chunk) {
+            }));
+            for (const dependencies of dependenciesChunk) {
                 for (const [dependency, deployableDependency] of dependencies) {
                     if (!pluginsToDeploy.has(dependency)) {
                         queue.push(deployableDependency);
